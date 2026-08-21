@@ -1,49 +1,120 @@
-import { TTS_PROVIDER, TTS_STATIC_AVAILABLE, TTS_STATIC_BASE_URL } from "../config/app.js";
+const LOCALE_BY_LANGUAGE = Object.freeze({
+  en: "en-US",
+  zh: "zh-CN",
+  ja: "ja-JP",
+  ko: "ko-KR",
+  fr: "fr-FR",
+  es: "es-ES",
+  de: "de-DE"
+});
 
-let activeAudio = null;
-let activeController = null;
+const VOICE_WAIT_MS = 1_800;
+const SPEECH_TIMEOUT_MS = 15_000;
 
-function stopActive() {
-  activeController?.abort();
-  activeController = null;
-  if (activeAudio) {
-    activeAudio.pause();
-    activeAudio.src = "";
-    activeAudio = null;
+let activeUtterance = null;
+let activeRun = 0;
+
+function speechEngine() {
+  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+    throw new Error("当前浏览器不支持系统发音");
   }
+  return window.speechSynthesis;
 }
 
-async function resolveAudioUrl(text, language, signal) {
-  if (signal.aborted) throw new DOMException("发音已取消", "AbortError");
-  if (TTS_PROVIDER !== "static-audio" || !TTS_STATIC_AVAILABLE) throw new Error("网页版发音正在准备中");
-  const slug = String(text).toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-").replace(/^-|-$/g, "");
-  return `${TTS_STATIC_BASE_URL}/${language}/${slug}.mp3`;
+function normalizeLocale(locale) {
+  return String(locale || "").trim().replace(/_/g, "-").toLowerCase();
+}
+
+export function findMatchingVoice(voices, locale) {
+  const target = normalizeLocale(locale);
+  const language = target.split("-")[0];
+  const available = Array.isArray(voices) ? voices : Array.from(voices || []);
+  return available.find((voice) => normalizeLocale(voice.lang) === target)
+    || available.find((voice) => normalizeLocale(voice.lang).split("-")[0] === language)
+    || null;
+}
+
+function waitForVoices(engine, runId) {
+  const initial = engine.getVoices();
+  if (initial.length) return Promise.resolve(initial);
+
+  return new Promise((resolve) => {
+    let finished = false;
+    let pollId = 0;
+    let timeoutId = 0;
+    const finish = () => {
+      if (finished) return;
+      const voices = engine.getVoices();
+      if (!voices.length && performance.now() < deadline && runId === activeRun) return;
+      finished = true;
+      clearInterval(pollId);
+      clearTimeout(timeoutId);
+      engine.removeEventListener?.("voiceschanged", finish);
+      resolve(voices);
+    };
+    const deadline = performance.now() + VOICE_WAIT_MS;
+    engine.addEventListener?.("voiceschanged", finish, { once: false });
+    pollId = window.setInterval(finish, 100);
+    timeoutId = window.setTimeout(finish, VOICE_WAIT_MS);
+  });
 }
 
 export async function speak(text, language, onState = () => {}) {
-  stopActive();
-  activeController = new AbortController();
+  stopSpeaking();
+  const engine = speechEngine();
+  const runId = activeRun;
+  const locale = LOCALE_BY_LANGUAGE[language];
+  const cleanText = String(text || "").trim();
+  if (!locale || !cleanText) throw new Error("当前单词无法发音");
+
   onState("preparing");
   try {
-    const audioUrl = await resolveAudioUrl(text, language, activeController.signal);
-    const audio = new Audio(audioUrl);
-    activeAudio = audio;
+    const voices = await waitForVoices(engine, runId);
+    if (runId !== activeRun) throw new DOMException("发音已取消", "AbortError");
+    const voice = findMatchingVoice(voices, locale);
+    if (!voice) throw new Error("当前设备没有可用的该语言发音");
+
     await new Promise((resolve, reject) => {
-      audio.onplay = () => onState("playing");
-      audio.onended = resolve;
-      audio.onerror = () => reject(new Error("音频播放失败，请重试。 "));
-      audio.play().catch(reject);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      let settled = false;
+      const timeoutId = window.setTimeout(() => {
+        engine.cancel();
+        finish(() => reject(new Error("系统发音超时，请重试")));
+      }, SPEECH_TIMEOUT_MS);
+      const finish = (complete) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        if (activeUtterance === utterance) activeUtterance = null;
+        complete();
+      };
+
+      utterance.lang = locale;
+      utterance.voice = voice;
+      utterance.onstart = () => {
+        if (runId === activeRun) onState("playing");
+      };
+      utterance.onend = () => finish(resolve);
+      utterance.onerror = (event) => {
+        if (runId !== activeRun || ["canceled", "interrupted"].includes(event.error)) {
+          finish(() => reject(new DOMException("发音已取消", "AbortError")));
+        } else {
+          finish(() => reject(new Error("系统发音失败，请重试")));
+        }
+      };
+      activeUtterance = utterance;
+      engine.speak(utterance);
     });
-    if (activeAudio === audio) onState("ended");
+    if (runId === activeRun) onState("ended");
   } catch (error) {
-    if (error.name === "AbortError") return;
+    if (error?.name === "AbortError") return;
     onState("error");
     throw error;
-  } finally {
-    activeController = null;
   }
 }
 
 export function stopSpeaking() {
-  stopActive();
+  activeRun += 1;
+  activeUtterance = null;
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }

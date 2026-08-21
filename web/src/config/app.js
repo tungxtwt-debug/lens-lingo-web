@@ -1,6 +1,3 @@
-export const TTS_PROVIDER = import.meta.env.VITE_TTS_PROVIDER || "static-audio";
-export const TTS_STATIC_BASE_URL = (import.meta.env.VITE_TTS_STATIC_BASE_URL || "/audio").replace(/\/$/, "");
-export const TTS_STATIC_AVAILABLE = import.meta.env.VITE_TTS_STATIC_AVAILABLE === "true";
 export const ANALYSIS_TIMEOUT_MS = 120_000;
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_EDGE = 1600;

@@ -33,4 +33,5 @@
    Functions binding or cloud AI service is requested.
 
 Android Chrome remains explicitly untested until a physical device is
-available. Static speech audio is not included in the first release.
+available. Pronunciation uses the device-native Web Speech API; no static audio
+or TTS backend is included.

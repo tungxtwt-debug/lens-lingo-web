@@ -10,8 +10,8 @@
   numeric cold-load or inference timings. No 416/320 comparison was requested.
 - Stability: no memory warning, unexpected page reload, white screen or crash
   was reported.
-- Speech: excluded from the pass result because static audio assets are not yet
-  provided; the expected placeholder message remains.
+- Speech: the earlier static-audio placeholder has since been replaced by the
+  device-native Web Speech API and requires a new physical-device check.
 - Android Chrome: not tested because no physical Android device was available.
   No Android result is inferred from desktop testing.
 
@@ -40,6 +40,8 @@ keep the tab open and recognize the same image a second time.
 - [ ] Labels are positioned correctly and remain tappable.
 - [ ] Word detail shows crop, part of speech, translation, two examples,
       related words and WordNet definition.
+- [ ] “听发音” plays the word with a voice matching the selected learning
+      language; switching languages never reuses an English voice incorrectly.
 - [ ] Back returns to the same image and labels.
 - [ ] Close/reopen and confirm the model is read from cache.
 - [ ] No image-upload request appears in Web Inspector.
@@ -58,6 +60,8 @@ Device/iOS version: ______. Result: PASS / FAIL. Notes: ______.
 - [ ] Labels are positioned correctly and remain tappable.
 - [ ] Word detail shows crop, part of speech, translation, two examples,
       related words and WordNet definition.
+- [ ] “听发音” plays the word with a voice matching the selected learning
+      language; switching languages never reuses an English voice incorrectly.
 - [ ] Back returns to the same image and labels.
 - [ ] Close/reopen and confirm the model is read from cache.
 - [ ] No image-upload request appears in Chrome remote debugging.

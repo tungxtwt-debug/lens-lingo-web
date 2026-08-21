@@ -39,9 +39,11 @@ is needed for object recognition.
 
 ## Speech
 
-The provider is `VITE_TTS_PROVIDER=static-audio`. Until static audio files are
-added, keep `VITE_TTS_STATIC_AVAILABLE=false`; the UI displays
-“网页版发音正在准备中”. The Web build contains no API-based speech fallback.
+Pronunciation uses the device's native Web Speech API (`speechSynthesis`). The
+app selects an installed voice matching the current learning locale and never
+falls back to a voice from a different language. No audio file, backend, API
+key, text upload or paid TTS service is used. Available voices depend on the
+operating system and browser language packs.
 
 ## Licensing and model reproduction
 
