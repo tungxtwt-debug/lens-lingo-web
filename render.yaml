@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: lens-lingo-api
+    runtime: python
+    plan: free
+    rootDir: server
+    buildCommand: pip install --no-cache-dir -r requirements-render.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --workers 1 --no-access-log
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: VISION_MODEL
+        value: yolo11n
+      - key: VISION_IMAGE_SIZE
+        value: 512
+      - key: VISION_MAX_UPLOAD_MB
+        value: 5
+      - key: VISION_MAX_IMAGE_PIXELS
+        value: 16000000
+      - key: ENABLE_TTS
+        value: "false"
+      - key: CORS_ORIGINS
+        value: http://localhost:5173
+      - key: OMP_NUM_THREADS
+        value: 1
+      - key: MKL_NUM_THREADS
+        value: 1
