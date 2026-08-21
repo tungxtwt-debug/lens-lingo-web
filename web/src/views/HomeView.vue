@@ -70,7 +70,7 @@ async function chooseFile(event) {
         <span class="switch-copy">切换</span>
       </div>
     </section>
-    <footer><i></i><span>网页版会将你选择的图片发送到本项目的云端识别服务进行物品识别。图片不会发送给第三方 AI API，也不会主动长期保存。</span></footer>
+    <footer><i></i><span>网页版会直接在当前浏览器中识别图片。图片不会上传到服务器，也不会发送给第三方 AI API。</span></footer>
   </main>
 </template>
 

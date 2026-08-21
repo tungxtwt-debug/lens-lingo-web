@@ -1,0 +1,11 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+python-multipart>=0.0.20,<1
+python-dotenv>=1.0,<2
+ultralytics>=8.3,<9
+# YOLO-World 自定义词表的本地文本编码器
+clip @ git+https://github.com/ultralytics/CLIP.git@488e81a6711eea7346872b46ea928b367da8889d
+pillow>=11,<13
+psutil>=7,<8
+# 仅用于开发阶段从 Open English WordNet 生成精简的本地知识文件。
+wn>=1.1,<2

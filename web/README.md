@@ -1,33 +1,55 @@
-# 看见单词 Web
+# Lens Lingo Web
 
-独立的 Vue 3 + Vite Web 客户端。它不会读取或修改微信小程序页面。
+Vue 3 + Vite static Web application. Object recognition runs entirely in the
+browser with ONNX Runtime Web and `yolo11n-512-dynamic-v2.onnx`; it does not
+call FastAPI or upload the selected image.
 
-## 本地运行
+## Local development
 
-1. 在项目原有方式下启动 FastAPI，并确认 `http://localhost:3000/health` 可访问。
-2. 在本目录安装依赖并启动 Vite：
+```bash
+cd web
+pnpm install
+pnpm dev
+```
 
-   ```bash
-   pnpm install
-   pnpm dev
-   ```
+Open <http://127.0.0.1:5173>. The first recognition downloads the 10.47 MiB
+model from this same local/static origin and stores it in browser Cache Storage.
 
-3. 打开终端显示的本地网址（默认 `http://localhost:5173`）。
-
-复制 `.env.example` 为 `.env.local` 后可覆盖默认配置。识别请求默认连接
-`http://localhost:3000`，超时为 120 秒。
-
-## 发音提供方
-
-- `VITE_TTS_PROVIDER=local-api`：开发期请求 FastAPI `/api/tts`。
-- `VITE_TTS_PROVIDER=static-audio`：从
-  `${VITE_TTS_STATIC_BASE_URL}/{language}/{word}.mp3` 读取静态音频。
-
-macOS 本地 TTS 依赖 `/usr/bin/say`。需要从普通 Terminal 启动 FastAPI；受限或沙箱化的终端可能无法生成音频。
-
-## 构建
+## Production build
 
 ```bash
 pnpm build
 pnpm preview
 ```
+
+The complete deployable static output is `web/dist/`. It contains the Vue
+application, the ONNX model and local ONNX Runtime binaries. No Python server
+is needed for object recognition.
+
+## Runtime policy
+
+- WASM is the only execution provider in the first public version.
+- iPhone/iPad Safari, Android Chrome and desktop browsers all use single-thread
+  WASM with SIMD enabled when the browser supports WebAssembly SIMD.
+- WebGPU and JSEP runtime files are intentionally excluded so every Cloudflare
+  Pages asset stays below 25 MiB.
+- Model download is versioned in Cache Storage. The cache name contains the
+  model hash; changing the model requires updating that value in
+  `src/services/browserVision.js`.
+
+## Speech
+
+The provider is `VITE_TTS_PROVIDER=static-audio`. Until static audio files are
+added, keep `VITE_TTS_STATIC_AVAILABLE=false`; the UI displays
+“网页版发音正在准备中”. The Web build contains no API-based speech fallback.
+
+## Licensing and model reproduction
+
+See `../LICENSE` and `../THIRD_PARTY_LICENSES.md`. The checked-in model can be
+reproduced in the existing Python development environment with:
+
+```bash
+python web/scripts/export_yolo11n_onnx.py
+```
+
+The export tool is not installed in the static Web application.

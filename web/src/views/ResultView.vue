@@ -8,7 +8,8 @@ import { prepareImage } from "../services/imageService.js";
 
 const router = useRouter();
 const fileInput = ref(null);
-const loadingMessage = ref("正在唤醒免费识别服务，第一次使用可能需要约 1 分钟。");
+const loadingMessage = ref("正在加载本地识别模型…");
+const loadingProgress = ref(null);
 const showTip = ref(false);
 let controller = null;
 let timers = [];
@@ -25,13 +26,26 @@ async function startAnalysis() {
   appState.analysisStatus = "loading";
   appState.analysisError = "";
   appState.objects = [];
-  loadingMessage.value = "正在唤醒免费识别服务，第一次使用可能需要约 1 分钟。";
-  timers = [
-    setTimeout(() => { loadingMessage.value = "正在识别图片…"; }, 60000),
-    setTimeout(() => { loadingMessage.value = "正在生成单词"; }, 90000)
-  ];
+  loadingMessage.value = "正在加载本地识别模型…";
+  loadingProgress.value = null;
   try {
-    const objects = await analyzeImage(appState.imageBlob, appState.imageName, controller.signal);
+    const objects = await analyzeImage(appState.imageBlob, appState.imageName, controller.signal, {
+      onProgress(progress) {
+        if (progress.phase === "model") {
+          loadingProgress.value = Math.round((progress.ratio || 0) * 100);
+          loadingMessage.value = progress.fromCache ? "正在从浏览器缓存读取模型…" : "正在下载本地识别模型…";
+        } else if (progress.phase === "initializing") {
+          loadingMessage.value = "正在初始化本地识别…";
+        } else if (progress.phase === "fallback") {
+          loadingMessage.value = "正在切换兼容识别模式…";
+        } else if (progress.phase === "analyzing") {
+          loadingProgress.value = null;
+          loadingMessage.value = "正在识别图片…";
+        } else if (progress.phase === "generating") {
+          loadingMessage.value = "正在生成单词";
+        }
+      }
+    });
     appState.objects = translateAndLayout(objects, appState.language);
     appState.analysisStatus = appState.objects.length ? "success" : "empty";
     if (appState.objects.length) {
@@ -87,7 +101,7 @@ onBeforeUnmount(() => { controller?.abort(); clearTimers(); });
         </div>
         <div v-if="showTip" class="learning-tip">☝️ 点击单词学习</div>
         <div v-if="['idle','loading'].includes(status)" class="image-state">
-          <span class="spinner"></span><strong>{{ loadingMessage }}</strong><small>请保持页面打开，识别完成后会自动显示单词。</small><button class="ghost-button" @click="controller?.abort()">取消</button>
+          <span class="spinner"></span><strong>{{ loadingMessage }}</strong><small v-if="loadingProgress !== null">模型加载 {{ loadingProgress }}%</small><small>所有识别都在本机浏览器内完成，请保持页面打开。</small><button class="ghost-button" @click="controller?.abort()">取消</button>
         </div>
         <div v-else-if="status === 'empty'" class="image-state"><span class="state-icon">◌</span><strong>没有找到物品</strong><small>靠近一点、增加光线，通常会更容易识别。</small><button class="ghost-button solid" @click="fileInput.click()">重新选择</button></div>
         <div v-else-if="status === 'error'" class="image-state"><span class="state-icon">!</span><strong>这次没有识别成功</strong><small>{{ appState.analysisError }}</small><button class="ghost-button solid" @click="startAnalysis">再试一次</button></div>

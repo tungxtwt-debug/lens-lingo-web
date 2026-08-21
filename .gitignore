@@ -1,4 +1,5 @@
 .env
+project.private.config.json
 server/.env
 server/.venv/
 server/.runtime/
@@ -6,12 +7,17 @@ server/__pycache__/
 **/__pycache__/
 *.pyc
 server/*.pt
+server/*.onnx
 server/models/
 server/weights/
 server/cache/tts/
 server/data/wordnet/
 node_modules/
+.pnpm-store/
 server/node_modules/
 .DS_Store
 web/dist/
 work/
+weights/
+outputs/
+experiments/
