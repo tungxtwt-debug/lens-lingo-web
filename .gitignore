@@ -6,7 +6,6 @@ server/__pycache__/
 **/__pycache__/
 *.pyc
 server/*.pt
-!server/yolo11n.pt
 server/models/
 server/weights/
 server/cache/tts/
